@@ -28,8 +28,10 @@ unsigned long lastUpdate = 0;
 void setup() {
   Wire.begin(I2CADDR);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
+#ifdef DEBUG
   Serial.begin(115200);           // start serial for output
   Serial.println("*************************** READY");         // print the integer
+#endif
 
   // put your setup code here, to run once:
   wheel1.begin(26315);
@@ -38,7 +40,11 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // dead man switch
+  if (lastUpdate < millis() - 500) {
+    setWheelSpeed(0, 0);
+    digitalWrite(LED_BUILTIN, false);
+  }
   updateWheelSpeed();
 }
 
@@ -63,7 +69,7 @@ void receiveEvent(int howMany) {
   spRight = spRight << 8 | sp2_2;
 
   // update wheel speed
-  setWheelSpeed(spLeft, spRight);
+  setWheelSpeed(spLeft, -spRight);
 
 #ifdef DEBUG
   Serial.print("Received ");         // print the value
@@ -80,6 +86,7 @@ void receiveEvent(int howMany) {
 }
 
 void setWheelSpeed(signed int spd1, signed int spd2) {
+  lastUpdate = millis();
   speed1 = spd1;
   speed2 = spd2;
 }
@@ -99,8 +106,6 @@ void updateWheelSpeed() {
   wheel2.write9((speed2 >> 8) & 0xFF);
   wheel2.write9(85);
   delayMicroseconds(300);
-  lastUpdate = millis();
-  //  digitalWrite(LED_BUILTIN, LOW);
 }
 
 
